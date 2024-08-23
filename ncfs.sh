@@ -1,10 +1,8 @@
 #!/bin/bash
 
-# Copyright © 2023 Barış DEMİRCİ <hi@338.rocks>
-# SPDX-License-Identifier: GPL-3.0
-
 echo "Starting NCFS..."
 
+# Function to retrieve variables from environment or config file
 get_variable() {
     local variable_name="$1"
     local config_file="$2"
@@ -15,21 +13,19 @@ get_variable() {
     else
         if [ -f "$config_file" ]; then
             selected_value=$(jq -r ".$variable_name" "$config_file")
-            if [ "$selected_value" == "null" ]; then
+            if [ "$selected_value" == "null" ] || [ -z "$selected_value" ]; then
                 if [ "$force" == true ]; then
                     echo "$variable_name not found in config file and environment variables. Exiting."
                     exit 1
                 else
-                    echo "$variable_name not found in config file and environment variables. Using default value."
                     selected_value="_DEFAULT_VALUE_DO_NOT_USE_IT"
                 fi
             fi
         else
             if [ "$force" == true ]; then
-                echo "$variable_name not found in config file and environment variables. Exiting."
+                echo "Config file not found and $variable_name not set in environment variables. Exiting."
                 exit 1
             else
-                echo "$variable_name not found in config file and environment variables. Using default value."
                 selected_value="_DEFAULT_VALUE_DO_NOT_USE_IT"
             fi
         fi
@@ -38,8 +34,7 @@ get_variable() {
     echo "$selected_value"
 }
 
-NGROK_AUTH_TOKEN=$(get_variable "NGROK_AUTH_TOKEN" "config.json" true)
-NGROK_TCP_PORT=$(get_variable "NGROK_TCP_PORT" "config.json" true)
+TCP_PORT=$(get_variable "TCP_PORT" "/app/config.json" true)
 CLOUDFLARE_AUTH_EMAIL=$(get_variable "CLOUDFLARE_AUTH_EMAIL" "config.json" true)
 CLOUDFLARE_API_KEY=$(get_variable "CLOUDFLARE_API_KEY" "config.json" true)
 CLOUDFLARE_ZONE_ID=$(get_variable "CLOUDFLARE_ZONE_ID" "config.json" true)
@@ -70,43 +65,35 @@ if [ "$CLOUDFLARE_SRV_RECORD_NAME" != "_DEFAULT_VALUE_DO_NOT_USE_IT" ]; then
 		-H "Content-Type: application/json")
 
 	if [[ $srv_record == *"\"count\":0"* ]]; then
-		echo "SRV record does not exist in Cloudflare. You have to create it manually. Create a SRV record in your Cloudflare dashboard and set the name to _minecraft._tcp.$CLOUDFLARE_SRV_RECORD_NAME, port to $NGROK_TCP_PORT, target to $CLOUDFLARE_CNAME_RECORD_NAME"
+		echo "SRV record does not exist in Cloudflare. You have to create it manually. Create a SRV record in your Cloudflare dashboard and set the name to _minecraft._tcp.$CLOUDFLARE_SRV_RECORD_NAME, port to $TCP_PORT, target to $CLOUDFLARE_CNAME_RECORD_NAME"
 		exit 1
 	fi
 
 	srv_record_id=$(echo "$srv_record" | sed -E 's/.*"id":"(\w+)".*/\1/')
 fi
 
-echo "Starting ngrok..."
-ngrok config add-authtoken $NGROK_AUTH_TOKEN
+echo "Starting bore command..."
+bore local "$TCP_PORT" --to bore.pub > /tmp/bore_output.txt &
 
-if [ -z "$DOCKER_NETWORK" ]; then
-	ngrok tcp 127.0.0.1:$NGROK_TCP_PORT >/dev/null &
-else
-	ngrok tcp $DOCKER_NETWORK:$NGROK_TCP_PORT >/dev/null &
-fi
-
-while ! curl -s localhost:4040/api/tunnels | grep -q "tcp://"; do
-	sleep 1
+while ! grep -q 'bore\.pub:[0-9]\+' /tmp/bore_output.txt; do
+    sleep 1
 done
 
-ngrok_url=$(curl -s localhost:4040/api/tunnels | grep -o "tcp://[0-9a-z.-]*:[0-9]*")
-parsed_ngrok_url=${ngrok_url/tcp:\/\//}
+bore_host_port=$(grep -o 'bore\.pub:[0-9]\+' /tmp/bore_output.txt | cut -d':' -f2)
+bore_host="bore.pub"
 
-IFS=':' read -ra ADDR <<<"$parsed_ngrok_url"
+if [ -z "$bore_host_port" ]; then
+    echo "Failed to retrieve bore.pub URL."
+    exit 1
+fi
 
-ngrok_host=${ADDR[0]}
-ngrok_port=${ADDR[1]}
+echo "Tunnel established at $bore_host:$bore_host_port"
 
-echo "Host is $ngrok_host"
-echo "Port is $ngrok_port"
-
-echo "Updating CNAME record in Cloudflare..."
 update=$(curl -s -X PATCH "https://api.cloudflare.com/client/v4/zones/$CLOUDFLARE_ZONE_ID/dns_records/$cname_record_id" \
 	-H "X-Auth-Email: $CLOUDFLARE_AUTH_EMAIL" \
 	-H "X-Auth-Key: $CLOUDFLARE_API_KEY" \
 	-H "Content-Type: application/json" \
-	--data "{\"type\":\"CNAME\",\"name\":\"$CLOUDFLARE_CNAME_RECORD_NAME\",\"content\":\"$ngrok_host\"}")
+	--data "{\"type\":\"CNAME\",\"name\":\"$CLOUDFLARE_CNAME_RECORD_NAME\",\"content\":\"$bore_host\"}")
 
 case "$update" in
 *"\"success\":false"*)
@@ -121,7 +108,7 @@ if [ "$CLOUDFLARE_SRV_RECORD_NAME" != "_DEFAULT_VALUE_DO_NOT_USE_IT" ]; then
 		-H "X-Auth-Email: $CLOUDFLARE_AUTH_EMAIL" \
 		-H "X-Auth-Key: $CLOUDFLARE_API_KEY" \
 		-H "Content-Type: application/json" \
-		--data "{\"type\":\"SRV\",\"name\":\"$CLOUDFLARE_SRV_RECORD_PREFIX.$CLOUDFLARE_SRV_RECORD_NAME\",\"data\": {\"name\":\"$CLOUDFLARE_SRV_RECORD_NAME\",\"port\":$ngrok_port,\"proto\":\"_tcp\",\"service\":\"_minecraft\",\"target\":\"$CLOUDFLARE_CNAME_RECORD_NAME\"}}")
+		--data "{\"type\":\"SRV\",\"name\":\"$CLOUDFLARE_SRV_RECORD_PREFIX.$CLOUDFLARE_SRV_RECORD_NAME\",\"data\": {\"name\":\"$CLOUDFLARE_SRV_RECORD_NAME\",\"port\":$bore_host_port,\"proto\":\"_tcp\",\"service\":\"_minecraft\",\"target\":\"$CLOUDFLARE_CNAME_RECORD_NAME\"}}")
 
 	case "$update" in
 	*"\"success\":false"*)
@@ -131,7 +118,8 @@ if [ "$CLOUDFLARE_SRV_RECORD_NAME" != "_DEFAULT_VALUE_DO_NOT_USE_IT" ]; then
 	esac
 fi
 
-echo "Done! You can connect to your server using $ngrok_host:$ngrok_port"
+echo "DNS records updated successfully."
+echo "You can connect to your server using $CLOUDFLARE_CNAME_RECORD_NAME:$bore_host_port"
 
 tail -f "/dev/null"
 

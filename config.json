@@ -1,7 +1,6 @@
 {
-    "$schema": "https://raw.githubusercontent.com/barbarbar338/ncfs/main/config.schema.json",
-    "NGROK_TCP_PORT": 25565,
-    "NGROK_AUTH_TOKEN": "",
+    "$schema": "https://raw.githubusercontent.com/GalvareyPoco/ncfs/main/config.schema.json",
+    "TCP_PORT": 25565,
     "CLOUDFLARE_AUTH_EMAIL": "",
     "CLOUDFLARE_API_KEY": "",
     "CLOUDFLARE_ZONE_ID": "",

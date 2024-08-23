@@ -1,10 +1,10 @@
-# 🚀 NGROK to Cloudflare Tunnel Script
+# 🚀 BORE to Cloudflare Tunnel Script
 
-- This script will help you to create a tunnel to your local game server using ngrok and cloudflare.
+- This script will help you to create a tunnel to your local game server using bore and cloudflare.
 - The best solution for people behind NAT or firewall.
-- Creates a ngrok tcp tunnel and sets required dns record on cloudflare.
+- Creates a bore tcp tunnel and sets required dns record on cloudflare.
 - Opens your local game server to world without any hassle.
-- Port forwarding, firewall settings or any other configuration is not required, everything is handled by ngrok and cloudflare.
+- Port forwarding, firewall settings or any other configuration is not required, everything is handled by bore and cloudflare.
 
 # 🐋 Use with docker
 - To start using this script, you need to install docker and docker-compose.
@@ -27,8 +27,7 @@ services:
         networks:
             - ncfs-net
         environment:
-            NGROK_TCP_PORT: <game server port here>
-            NGROK_AUTH_TOKEN: <Your NGROK auth token here>
+            TCP_PORT: <game server port here>
             CLOUDFLARE_AUTH_EMAIL: <Your Cloudflare email here>
             CLOUDFLARE_API_KEY: <Your Cloudflare Global API key here>
             CLOUDFLARE_ZONE_ID: <Your domain's Cloudflare Zone ID here>

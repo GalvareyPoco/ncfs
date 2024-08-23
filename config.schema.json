@@ -4,13 +4,9 @@
     "description": "NCFS config schema for validating `config.json` files.",
     "type": "object",
     "properties": {
-        "NGROK_TCP_PORT": {
+        "TCP_PORT": {
             "description": "Game server port",
             "type": "number"
-        },
-        "NGROK_AUTH_TOKEN": {
-            "description": "ngrok auth token, get it from https://dashboard.ngrok.com/auth/your-authtoken",
-            "type": "string"
         },
         "CLOUDFLARE_AUTH_EMAIL": {
             "description": "Cloudflare auth email",
