@@ -9,7 +9,7 @@
 # Nothing fancy. Just a simple script to get the latest ncfs.sh script
 
 # Get the latest ncfs.sh script from github
-wget https://raw.githubusercontent.com/GalvareyPoco/ncfs/main/ncfs.sh
+wget https://raw.githubusercontent.com/GalvareyPoco/ncfs-bore/main/ncfs.sh
 
 # Set permissions
 chmod +x ncfs.sh

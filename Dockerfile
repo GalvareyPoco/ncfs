@@ -22,7 +22,7 @@ RUN mkdir /app && chown -R app /app
 USER app
 WORKDIR /app
 
-RUN wget https://raw.githubusercontent.com/GalvareyPoco/ncfs/main/runner.sh -O /app/runner.sh
+RUN wget https://raw.githubusercontent.com/GalvareyPoco/ncfs-bore/main/runner.sh -O /app/runner.sh
 RUN chmod 755 /app/runner.sh
 
 # Expose the necessary port
