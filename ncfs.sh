@@ -80,6 +80,8 @@ else
 	bore local -l $DOCKER_NETWORK "$TCP_PORT" --to bore.pub > /tmp/bore_output.txt &
 fi
 
+echo /tmp/bore_output.txt
+
 while ! grep -q 'bore\.pub:[0-9]\+' /tmp/bore_output.txt; do
 	sleep 1
 done
