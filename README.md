@@ -10,24 +10,19 @@
 - To start using this script, you need to install docker and docker-compose.
 - Download [`docker-compose.yml`](https://raw.githubusercontent.com/barbarbar338/ncfs/main/docker/docker-compose.yml) file
 ```yml
-version: "3.8"
-
 name: ncfs
-
-networks:
-    ncfs-net:
 
 services:
     ncfs:
-        image: barbarbar338/ncfs:buildx-latest 
+        build:
+            context: .
+            dockerfile: Dockerfile
         container_name: ncfs
         restart: unless-stopped
-        ports:
-            - 4040:4040
-        networks:
-            - ncfs-net
+        network_mode: host
         environment:
             TCP_PORT: <game server port here>
+            NGROK_AUTH_TOKEN: <Your NGROK auth token here>
             CLOUDFLARE_AUTH_EMAIL: <Your Cloudflare email here>
             CLOUDFLARE_API_KEY: <Your Cloudflare Global API key here>
             CLOUDFLARE_ZONE_ID: <Your domain's Cloudflare Zone ID here>
@@ -39,13 +34,6 @@ services:
 - Edit `docker-compose.yml` file as you wish.
 - Run `docker-compose up -d` and wait
 - You (and everyone in the world!) can now connect to your game server using your domain name.
-
-# 📦 Templates
-- You can use ready to use templates for your game server.
-- To use a template, simply download the template file and run `docker-compose up -d -f <template file>`
-- Currently these templates are supported:
-    - Minecraft: https://raw.githubusercontent.com/barbarbar338/ncfs/main/templates/minecraft.yml
-    - Terraria (TShock): https://raw.githubusercontent.com/barbarbar338/ncfs/main/templates/terraria.yml
 
 # 🧦 Contributing
 
