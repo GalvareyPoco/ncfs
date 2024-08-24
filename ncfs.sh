@@ -73,10 +73,15 @@ if [ "$CLOUDFLARE_SRV_RECORD_NAME" != "_DEFAULT_VALUE_DO_NOT_USE_IT" ]; then
 fi
 
 echo "Starting bore command..."
-bore local "$TCP_PORT" --to bore.pub > /tmp/bore_output.txt &
 
-while ! grep -q 'bore\.pub:[0-9]\+' /tmp/bore_output.txt; do
-    sleep 1
+if [ -z "$DOCKER_NETWORK" ]; then
+	bore local -l 127.0.0.1 "$TCP_PORT" --to bore.pub > /tmp/bore_output.txt &
+else
+	bore local -l $DOCKER_NETWORK "$TCP_PORT" --to bore.pub > /tmp/bore_output.txt &
+fi
+
+while ! curl -s localhost:4040/api/tunnels | grep -q "tcp://"; do
+	sleep 1
 done
 
 bore_host_port=$(grep -o 'bore\.pub:[0-9]\+' /tmp/bore_output.txt | cut -d':' -f2)
