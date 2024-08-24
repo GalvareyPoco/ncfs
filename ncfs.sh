@@ -80,7 +80,7 @@ else
 	bore local -l $DOCKER_NETWORK "$TCP_PORT" --to bore.pub > /tmp/bore_output.txt &
 fi
 
-while ! curl -s localhost:4040/api/tunnels | grep -q "tcp://"; do
+while ! grep -q 'bore\.pub:[0-9]\+' /tmp/bore_output.txt; do
 	sleep 1
 done
 
